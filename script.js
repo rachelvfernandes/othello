@@ -93,11 +93,37 @@ function draw()
 
 function mousePressed()
 {
+  let boardX = coordToBoard(mouseX);
+  let boardY = coordToBoard(mouseY);
   if(blackTurn)
-      drawBlack(coordToBoard(mouseX), coordToBoard(mouseY));
+      drawBlack(boardX, boardY);
   else
-      drawWhite(coordToBoard(mouseX), coordToBoard(mouseY));
+      drawWhite(boardX, boardY);
   blackTurn = !blackTurn;
+
+
+  var server = "http://127.0.0.1:5000";
+  var dataToSend = {'move':[0, 0]};
+
+    $(function() {
+      var appdir='/move';
+      var send_msg = "Mouse was clicked";
+      var received_msg = "<p>Result returned</p>";
+      dataToSend['move'] = [boardX, boardY];
+      console.log(send_msg);
+      //document.getElementById('message').html(send_msg);
+      $.ajax({
+          type: "POST",
+          url:server+appdir,
+          data: JSON.stringify(dataToSend),
+          dataType: 'json'
+      }).done(function(data) { 
+        console.log(data);
+        //document.getElementById('n3').val(data['sum']);
+        //document.getElementById('message').html(received_msg+data['msg']);
+      });
+    });
+
 }
 
 function drawBoard()

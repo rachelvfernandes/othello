@@ -2,6 +2,9 @@ import math
 import sys
 import numpy as np
 
+from flask import Flask, request, jsonify
+import json
+
 #Player tokens
 B = 0 #black
 W = 1 #white
@@ -36,7 +39,45 @@ weighting = np.array([
 [4, -3, 2, 2, 2, 2, -3, 4],
 ])
 
-current_player = W
+current_player = B
+AI_player = B
+app = Flask(__name__)
+
+@app.route('/move', methods=['POST'])
+
+def sum_num():
+    global current_board
+    global current_player
+    rf=request.form
+    # print(rf)
+    for key in rf.keys():
+        data=key
+    print(data)
+    data_dic=json.loads(data)
+    print(data_dic.keys())
+    player_move = data_dic['move']
+    if current_player == AI_player: #computer's turn
+        current_board = best_move(current_board, current_player)
+        current_player = get_next_player(current_board, current_player)
+    else:
+        if player_move in possible_moves(current_board, current_player):
+            make_move(current_board, current_player, move)
+            current_player = get_next_player(current_board, current_player)
+    #Score the board
+    black_score = len(np.where(current_board == B)[0])
+    white_score = len(np.where(current_board == W)[0])
+    if black_score > white_score:
+        winner = B
+    elif white_score < black_score:
+        winner = W
+    else:
+        winner = E #tie
+    print(winners[winner])
+    print(current_board.tolist())
+    resp_dic={'sum':10299438,'msg':'we got a winner folks!','board':current_board.tolist(), 'winner':winner}
+    resp = jsonify(resp_dic)
+    resp.headers['Access-Control-Allow-Origin']='*'
+    return resp
 
 
 def possible_moves(board, player):
@@ -152,22 +193,4 @@ def score_board(board):
     for move in white_moves:
         weighted_moves -= weighting[move[0]][move[1]]
     return spaces_left*weighted_tokens + spaces_filled*tokens_acquired + 0.9*spaces_left*weighted_moves + 0.2*spaces_filled*mobility
-
-
-# Play the game until the board is full or no one can move
-while current_player is not None:
-    current_board = best_move(current_board, current_player)
-    print(current_board)
-    current_player = get_next_player(current_board, current_player)
-
-#Score the board
-black_score = len(np.where(current_board == B)[0])
-white_score = len(np.where(current_board == W)[0])
-if black_score > white_score:
-    winner = B
-elif white_score < black_score:
-    winner = W
-else:
-    winner = E #tie
-print(winners[winner])
 
