@@ -43,42 +43,50 @@ current_player = B
 AI_player = B
 app = Flask(__name__)
 
-@app.route('/move', methods=['POST'])
+@app.route('/userMove', methods=['POST'])
 
-def sum_num():
+def checkMoveAndPlay():
     global current_board
     global current_player
     rf=request.form
-    # print(rf)
     for key in rf.keys():
         data=key
     print(data)
     data_dic=json.loads(data)
     print(data_dic.keys())
     player_move = data_dic['move']
-    if current_player == AI_player: #computer's turn
-        current_board = best_move(current_board, current_player)
-        current_player = get_next_player(current_board, current_player)
-    else:
-        if player_move in possible_moves(current_board, current_player):
-            make_move(current_board, current_player, move)
+    valid_move = False
+    if current_player != AI_player: #computer's turn
+        print(possible_moves(current_board, current_player))
+        print(player_move)
+        if tuple(player_move) in possible_moves(current_board, current_player):
+            valid_move = True
+            make_move(current_board, current_player, player_move)
             current_player = get_next_player(current_board, current_player)
-    #Score the board
-    black_score = len(np.where(current_board == B)[0])
-    white_score = len(np.where(current_board == W)[0])
-    if black_score > white_score:
-        winner = B
-    elif white_score < black_score:
-        winner = W
-    else:
-        winner = E #tie
-    print(winners[winner])
-    print(current_board.tolist())
-    resp_dic={'sum':10299438,'msg':'we got a winner folks!','board':current_board.tolist(), 'winner':winner}
+    print(current_board)
+    resp_dic={'valid_move':valid_move,'next_player':current_player,'board':current_board.tolist()}
     resp = jsonify(resp_dic)
     resp.headers['Access-Control-Allow-Origin']='*'
     return resp
 
+
+@app.route('/computerMove', methods=['POST'])
+
+def send_computer_move():
+    global current_board
+    global current_player
+    valid_move = False
+    player_move = [0, 0]
+    if current_player == AI_player: #computer's turn
+        valid_move = True
+        player_move = best_move(current_board, current_player)
+        current_player = get_next_player(current_board, current_player)
+    print(current_board)
+    resp_dic={'next_player':current_player,'board':current_board.tolist(), 'player_move':[int(player_move[0]), int(player_move[1])], 'valid_move':valid_move}
+    resp = jsonify(resp_dic)
+    resp.headers['Access-Control-Allow-Origin']='*'
+    return resp
+    
 
 def possible_moves(board, player):
     # This method finds instances of pieces and checks for empty spaces. Finding empty spaces and checking for instances of pieces might be better
@@ -157,10 +165,12 @@ def minimax(board, player, depth, alpha, beta):
 
 def best_move(board, player):
     #   If corner taken, dont weight adjacent pieces negatively.
+    global current_board
     depth = 3
     move = minimax(board, player, depth, -math.inf, math.inf)[0]
     print(move)
-    return make_move(board.copy(), player, move)
+    current_board = make_move(board.copy(), player, move)
+    return move
 
 def edge_build(edge, player):
     num_other_player_in_between = 0

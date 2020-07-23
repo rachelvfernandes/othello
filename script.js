@@ -4,7 +4,6 @@ random, pmouseX, pmouseY, keyCode, color, ellipse, width, height, textAlign,
 loadImage, rectMode, text, image, CENTER, circle, noStroke
 */
 
-// prints "hi" in the browser's dev tools console
 console.log("hi");
 
 
@@ -19,9 +18,18 @@ let lineDist;
 let tokenRadius;
 let can;
 let blackTurn;
+
+let B = 0;
+let W = 1;
+let E = 2;
+let current_player = B;
+let user_player = W;
+let computer_player = B;
+let playingAgainstAI = true;
+let server = "http://127.0.0.1:5000";
+let board;
 function setup()
 {
-  blackTurn = true;
   boardDimen = 600;//min(windowWidth, windowHeight);
   lineDist = boardDimen/8;
   tokenRadius = boardDimen/20;
@@ -37,6 +45,33 @@ function setup()
 
 function draw()
 {
+
+  if(playingAgainstAI && current_player == computer_player)
+  {
+    var dataToSend = {'move':[0, 0]};
+    $(function() {
+    var appdir='/computerMove';
+    console.log("AI player's turn. Getting the move...");
+    $.ajax({
+        type: "POST",
+        url:server+appdir,
+        data: JSON.stringify(dataToSend),
+        dataType: 'json'
+    }).done(function(data) { 
+      console.log(data);
+      if(data['valid_move'])
+      {
+      if(current_player == B)
+          drawBlack(data['player_move'][0], data['player_move'][1]);
+      else if(current_player == W)
+          drawWhite(data['player_move'][0], data['player_move'][1]);
+      current_player = data['next_player'];
+      }
+    });
+  });
+  }
+
+  
     /*if(inn > 40 || inn < 1)
     {
       deltaInn = -deltaInn;
@@ -95,34 +130,35 @@ function mousePressed()
 {
   let boardX = coordToBoard(mouseX);
   let boardY = coordToBoard(mouseY);
-  if(blackTurn)
-      drawBlack(boardX, boardY);
-  else
-      drawWhite(boardX, boardY);
-  blackTurn = !blackTurn;
 
-
-  var server = "http://127.0.0.1:5000";
+  
   var dataToSend = {'move':[0, 0]};
-
+  if(playingAgainstAI && current_player == user_player)
+  {
     $(function() {
-      var appdir='/move';
-      var send_msg = "Mouse was clicked";
-      var received_msg = "<p>Result returned</p>";
-      dataToSend['move'] = [boardX, boardY];
-      console.log(send_msg);
-      //document.getElementById('message').html(send_msg);
-      $.ajax({
-          type: "POST",
-          url:server+appdir,
-          data: JSON.stringify(dataToSend),
-          dataType: 'json'
-      }).done(function(data) { 
-        console.log(data);
-        //document.getElementById('n3').val(data['sum']);
-        //document.getElementById('message').html(received_msg+data['msg']);
-      });
+    var appdir='/userMove';
+    dataToSend['move'] = [boardX, boardY];
+    console.log("Mouse was clicked. Checking if move is valid...");
+    //document.getElementById('message').html(send_msg);
+    $.ajax({
+        type: "POST",
+        url:server+appdir,
+        data: JSON.stringify(dataToSend),
+        dataType: 'json'
+    }).done(function(data) { 
+      console.log(data);
+
+
+      if(current_player == B && data['valid_move'])
+          drawBlack(boardX, boardY);
+      else if(current_player == W && data['valid_move'])
+          drawWhite(boardX, boardY);
+      current_player = data['next_player'];
+      //document.getElementById('n3').val(data['sum']);
+      //document.getElementById('message').html(received_msg+data['msg']);
     });
+  });
+  }
 
 }
 
